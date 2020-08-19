@@ -22,9 +22,16 @@ struct Token {
 
 Token *token;
 
-void error(char *fmt, ...) {
+char *user_input;
+
+void error_at(char *loc, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, "");
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -40,12 +47,12 @@ bool consume(char op){
 
 void expect(char op) {
   if (token->kind != TK_RESERVED || token->str[0] != op)
-    error("is not '%c'", op);
+    error_at(token->str,"is not '%c'", op);
   token = token->next;
 }
 
 int expect_number() {
-    if(token->kind != TK_NUM) error("is not integer");
+    if(token->kind != TK_NUM) error_at(token->str,"is not integer");
     int val = token->val;
     token = token->next;
     return val;
@@ -85,7 +92,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    error("cannot tokenize");
+    error_at(p,"cannot tokenize");
   }
 
   new_token(TK_EOF, cur, p);
@@ -98,6 +105,7 @@ int main(int argc,char **argv) {
         return 0;
     }
 
+    user_input = argv[1];
     token = tokenize(argv[1]);
 
     printf(".intel_syntax noprefix\n");
@@ -116,8 +124,7 @@ int main(int argc,char **argv) {
             continue;
         }
 
-        fprintf(stderr, "bad arity");
-        return 1;
+        error_at(token->str, "is not op");
     }
     printf("  ret\n");
     return 0;
